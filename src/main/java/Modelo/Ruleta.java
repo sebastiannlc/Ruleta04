@@ -2,9 +2,6 @@ package Modelo;
 
 import java.util.Random;
 
-/**
- * Responsabilidad Única: Contiene la lógica pura del juego (girar y evaluar).
- */
 public class Ruleta {
 
     public static final int MAX_NUMERO = 36;
