@@ -3,9 +3,6 @@ package Vista;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Responsabilidad Única: Ofrecer opciones de navegación post-login.
- */
 public class VentanaMenu {
 
     private final JFrame frame = new JFrame("Menú Principal");

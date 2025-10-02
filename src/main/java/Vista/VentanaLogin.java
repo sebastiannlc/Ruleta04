@@ -1,14 +1,13 @@
 package Vista;
 
 import javax.swing.*;
-import Modelo.Usuario; // Importa Usuario
+import Modelo.Usuario;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.*;
 
-/**
- * Responsabilidad Única: Manejar la interfaz y la autenticación.
- */
+import Controlador.SessionController;
+
 public class VentanaLogin {
 
     public static final List<Usuario> USUARIOS = new ArrayList<>();
@@ -19,34 +18,47 @@ public class VentanaLogin {
     private final JLabel lblClave = new JLabel("Clave:");
     private final JPasswordField txtClave = new JPasswordField(15);
     private final JButton btnIngresar = new JButton("Ingresar");
+    private final JButton btnRegistrar = new JButton("Registrarse");
 
     public VentanaLogin() {
-        inicializarUsuarios();
+        if (USUARIOS.isEmpty()) {
+            inicializarUsuarios();
+        }
         configurarVentana();
         agregarListeners();
     }
 
     private void inicializarUsuarios() {
-        USUARIOS.add(new Usuario("seba", "1234", "Seba"));
-        USUARIOS.add(new Usuario("dev", "pass", "Desarrollador"));
+        // Usa el constructor con saldo
+        USUARIOS.add(new Usuario("seba", "1234", "Seba", 1500.0));
+        USUARIOS.add(new Usuario("dev", "pass", "Desarrollador", 5000.0));
     }
 
     private void configurarVentana() {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        JPanel inputPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        inputPanel.add(lblUsuario);
+        inputPanel.add(txtUsuario);
+        inputPanel.add(lblClave);
+        inputPanel.add(txtClave);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.add(btnRegistrar);
+        buttonPanel.add(btnIngresar);
+
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.add(lblUsuario);
-        mainPanel.add(txtUsuario);
-        mainPanel.add(lblClave);
-        mainPanel.add(txtClave);
-        mainPanel.add(btnIngresar);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        mainPanel.add(inputPanel);
+        mainPanel.add(buttonPanel);
 
         frame.add(mainPanel);
     }
 
     private void agregarListeners() {
         btnIngresar.addActionListener(e -> login());
+        btnRegistrar.addActionListener(e -> abrirVentanaRegistro());
     }
 
     public void mostrarVentana() {
@@ -55,27 +67,36 @@ public class VentanaLogin {
         frame.setVisible(true);
     }
 
+    private void abrirVentanaRegistro() {
+        frame.dispose();
+        new VentanaRegistro().mostrarVentana();
+    }
+
     private void login() {
         String user = txtUsuario.getText();
         String pass = new String(txtClave.getPassword());
 
-        String nombreUsuario = validarCredenciales(user, pass);
+        Usuario usuarioLogueado = validarCredenciales(user, pass);
 
-        if (!nombreUsuario.isEmpty()) {
-            mostrarExito(nombreUsuario);
-            abrirMenuPrincipal(nombreUsuario);
+        if (usuarioLogueado != null) {
+            // Inicia la sesión
+            SessionController.getInstancia().iniciarSesion(usuarioLogueado);
+
+            mostrarExito(usuarioLogueado.getNombre());
+            frame.dispose();
+            abrirMenuPrincipal(); // Llama a la navegación
         } else {
             mostrarError();
         }
     }
 
-    private String validarCredenciales(String u, String p) {
+    private Usuario validarCredenciales(String u, String p) {
         for (Usuario usuario : USUARIOS) {
             if (usuario.validarCredenciales(u, p)) {
-                return usuario.getNombre();
+                return usuario;
             }
         }
-        return "";
+        return null;
     }
 
     private void mostrarExito(String nombre) {
@@ -88,9 +109,18 @@ public class VentanaLogin {
         JOptionPane.showMessageDialog(frame, msg, "Error de Login", JOptionPane.ERROR_MESSAGE);
     }
 
-    private void abrirMenuPrincipal(String nombreUsuario) {
-        frame.dispose();
+    private void abrirMenuPrincipal() {
+        String nombreUsuario = SessionController.getInstancia().getNombreUsuario();
         VentanaMenu menu = new VentanaMenu(nombreUsuario);
         menu.mostrarVentana();
+    }
+
+    public static boolean usuarioExiste(String username) {
+        for (Usuario usuario : USUARIOS) {
+            if (usuario.getUsername().equalsIgnoreCase(username)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

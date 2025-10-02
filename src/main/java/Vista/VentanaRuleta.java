@@ -3,12 +3,12 @@ package Vista;
 import javax.swing.*;
 import java.awt.*;
 
-import Modelo.Ruleta; // Delegación al Controlador
-import Modelo.Resultado;        // Delegación al Modelo Resultado
+import Controlador.ResultadoController;
+import Controlador.RuletaController;
+import Modelo.Ruleta;
+import Modelo.Resultado;
+import Modelo.TipoApuesta; // Importación del Enum
 
-/**
- * Responsabilidad Única: Ser la Interfaz de Usuario (UI) para el juego.
- */
 public class VentanaRuleta {
 
     private final JFrame frame = new JFrame("Ruleta Americana");
@@ -31,6 +31,8 @@ public class VentanaRuleta {
 
     private final String nombreUsuario;
     private final VentanaMenu menuPrincipal;
+
+    private final RuletaController ruletaController = new RuletaController();
 
     public VentanaRuleta(String nombreUsuario, VentanaMenu menuPrincipal) {
         this.nombreUsuario = nombreUsuario;
@@ -105,8 +107,7 @@ public class VentanaRuleta {
 
     private void agregarListeners() {
         btnGirar.addActionListener(e -> jugarRondaGUI());
-        // Llama al Modelo Resultado
-        btnEstadisticas.addActionListener(e -> Resultado.mostrarEstadisticas());
+        btnEstadisticas.addActionListener(e -> ResultadoController.mostrarEstadisticas());
         btnVolver.addActionListener(e -> volverAlMenu());
     }
 
@@ -119,46 +120,49 @@ public class VentanaRuleta {
         menuPrincipal.mostrarVentana();
     }
 
-    private char obtenerTipoApuestaSeleccionado() {
-        if (rbRojo.isSelected()) return 'R';
-        if (rbNegro.isSelected()) return 'N';
-        if (rbPar.isSelected()) return 'P';
-        if (rbImpar.isSelected()) return 'I';
-        return ' ';
+    private TipoApuesta obtenerTipoApuestaSeleccionado() {
+        if (rbRojo.isSelected()) return TipoApuesta.ROJO;
+        if (rbNegro.isSelected()) return TipoApuesta.NEGRO;
+        if (rbPar.isSelected()) return TipoApuesta.PAR;
+        if (rbImpar.isSelected()) return TipoApuesta.IMPAR;
+        return null;
     }
 
     private void jugarRondaGUI() {
-        char tipoApuesta = obtenerTipoApuestaSeleccionado();
+        TipoApuesta tipoApuesta = obtenerTipoApuestaSeleccionado();
         double monto;
 
-        try { monto = Double.parseDouble(txtMonto.getText()); }
-        catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(frame, "Monto inválido.", "Error", JOptionPane.ERROR_MESSAGE);
+        try {
+            monto = Double.parseDouble(txtMonto.getText());
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(frame, "Monto inválido. Debe ser un número.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        if (tipoApuesta == ' ' || monto <= 0 || Resultado.historialSize >= Resultado.MAX_HISTORIAL) {
-            JOptionPane.showMessageDialog(frame, "Error: Apuesta, monto positivo, o historial lleno.", "Error", JOptionPane.WARNING_MESSAGE);
+        if (tipoApuesta == null || monto <= 0 || ResultadoController.historial.size() >= ResultadoController.MAX_HISTORIAL) {
+            JOptionPane.showMessageDialog(frame, "Error: Seleccione apuesta y monto positivo. (Historial lleno si supera " + ResultadoController.MAX_HISTORIAL + ").", "Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        int numero = Ruleta.girar();
-        boolean acierto = Ruleta.evaluarApuesta(numero, tipoApuesta);
+        Resultado resultado = ruletaController.jugarRonda(monto, tipoApuesta);
 
-        // Llama a Resultado para registrar
-        Resultado.registrarResultado(numero, monto, acierto);
-        actualizarGUI(numero, tipoApuesta, monto, acierto);
+        actualizarGUI(
+                resultado.getNumero(),
+                resultado.getTipoApuesta(),
+                resultado.getMonto(),
+                resultado.isAcierto(),
+                resultado.getGanancia()
+        );
     }
 
-    private void actualizarGUI(int numero, char tipo, double monto, boolean acierto) {
-        double gananciaNeta = acierto ? monto * Resultado.PAGO_MULTIPLICADOR : -monto;
-        String resultado = acierto ? "¡GANÓ!" : "PERDIÓ.";
+    private void actualizarGUI(int numero, char tipo, double monto, boolean acierto, double gananciaNeta) {
+        String resultadoTexto = acierto ? "¡GANÓ!" : "PERDIÓ.";
         String color = Ruleta.esRojo(numero) ? "ROJO" : (numero == 0 ? "VERDE" : "NEGRO");
 
         lblNumeroGanador.setText("Ganador: " + numero + " (" + color + ")");
 
-        String logEntry = String.format("Ronda #%d: Apuesta: %c | Ganó: %d (%s). Neta: $%.2f\n",
-                Resultado.historialSize, tipo, numero, resultado, gananciaNeta);
+        String logEntry = String.format("Ronda #%d: Apuesta: %c | Salió: %d (%s). Neta: $%.2f\n",
+                ResultadoController.historial.size(), tipo, numero, resultadoTexto, gananciaNeta);
 
         areaHistorial.append(logEntry);
     }
