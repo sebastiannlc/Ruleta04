@@ -1,126 +1,99 @@
 package Vista;
 
-import javax.swing.*;
+import Utilidades.GestorPersistencia;
 import Modelo.Usuario;
-import java.util.ArrayList;
-import java.util.List;
-import java.awt.*;
-
 import Controlador.SessionController;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.List;
 
 public class VentanaLogin {
 
-    public static final List<Usuario> USUARIOS = new ArrayList<>();
+    private static final String ARCHIVO_USUARIOS = "usuarios.dat";
 
-    private final JFrame frame = new JFrame("Login - Casino Black Cat");
-    private final JLabel lblUsuario = new JLabel("Usuario:");
-    private final JTextField txtUsuario = new JTextField(15);
-    private final JLabel lblClave = new JLabel("Clave:");
-    private final JPasswordField txtClave = new JPasswordField(15);
-    private final JButton btnIngresar = new JButton("Ingresar");
-    private final JButton btnRegistrar = new JButton("Registrarse");
+    // Cargar lista persistente al inicio
+    public static final List<Usuario> USUARIOS =
+            GestorPersistencia.cargarDatos(ARCHIVO_USUARIOS);
+
+    private final JFrame frame = new JFrame("Login");
+    private final JTextField txtUsername = new JTextField(15);
+    private final JPasswordField txtPassword = new JPasswordField(15);
+    private final JButton btnLogin = new JButton("Login");
+    private final JButton btnRegistro = new JButton("Registrarse");
 
     public VentanaLogin() {
+        // Asegurar usuario inicial si es la primera ejecución
         if (USUARIOS.isEmpty()) {
-            inicializarUsuarios();
+            USUARIOS.add(new Usuario("admin", "123", "Administrador", 5000.0));
+            guardarUsuarios();
         }
-        configurarVentana();
+        configurarComponentes();
         agregarListeners();
     }
 
-    private void inicializarUsuarios() {
-        // Usa el constructor con saldo
-        USUARIOS.add(new Usuario("seba", "1234", "Seba", 1500.0));
-        USUARIOS.add(new Usuario("dev", "pass", "Desarrollador", 5000.0));
+    public static void guardarUsuarios() {
+        GestorPersistencia.guardarDatos(USUARIOS, ARCHIVO_USUARIOS);
     }
 
-    private void configurarVentana() {
+    private void configurarComponentes() {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JPanel inputPanel = new JPanel(new GridLayout(2, 2, 5, 5));
-        inputPanel.add(lblUsuario);
-        inputPanel.add(txtUsuario);
-        inputPanel.add(lblClave);
-        inputPanel.add(txtClave);
+        JPanel panel = new JPanel(new GridLayout(3, 2, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.add(btnRegistrar);
-        buttonPanel.add(btnIngresar);
+        panel.add(new JLabel("Usuario:"));
+        panel.add(txtUsername);
+        panel.add(new JLabel("Contraseña:"));
+        panel.add(txtPassword);
 
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        mainPanel.add(inputPanel);
-        mainPanel.add(buttonPanel);
+        panel.add(btnRegistro);
+        panel.add(btnLogin);
 
-        frame.add(mainPanel);
+        frame.add(panel);
+        frame.pack();
+
+        // Listener para guardar datos al cerrar la aplicación
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                guardarUsuarios();
+                System.exit(0);
+            }
+        });
     }
 
     private void agregarListeners() {
-        btnIngresar.addActionListener(e -> login());
-        btnRegistrar.addActionListener(e -> abrirVentanaRegistro());
+        btnLogin.addActionListener(e -> intentarLogin());
+        btnRegistro.addActionListener(e -> mostrarVentanaRegistro());
     }
 
     public void mostrarVentana() {
-        frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
-    private void abrirVentanaRegistro() {
+    private void intentarLogin() {
+        String username = txtUsername.getText();
+        String password = new String(txtPassword.getPassword());
+
+        Usuario usuario = USUARIOS.stream()
+                .filter(u -> u.validarCredenciales(username, password))
+                .findFirst()
+                .orElse(null);
+
+        if (usuario != null) {
+            SessionController.getInstancia().iniciarSesion(usuario);
+            JOptionPane.showMessageDialog(frame, "Login exitoso. ¡Bienvenido!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            frame.dispose();
+            new VentanaMenu(usuario.getNombre()).mostrarVentana();
+        } else {
+            JOptionPane.showMessageDialog(frame, "Credenciales inválidas.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void mostrarVentanaRegistro() {
         frame.dispose();
         new VentanaRegistro().mostrarVentana();
-    }
-
-    private void login() {
-        String user = txtUsuario.getText();
-        String pass = new String(txtClave.getPassword());
-
-        Usuario usuarioLogueado = validarCredenciales(user, pass);
-
-        if (usuarioLogueado != null) {
-            // Inicia la sesión
-            SessionController.getInstancia().iniciarSesion(usuarioLogueado);
-
-            mostrarExito(usuarioLogueado.getNombre());
-            frame.dispose();
-            abrirMenuPrincipal(); // Llama a la navegación
-        } else {
-            mostrarError();
-        }
-    }
-
-    private Usuario validarCredenciales(String u, String p) {
-        for (Usuario usuario : USUARIOS) {
-            if (usuario.validarCredenciales(u, p)) {
-                return usuario;
-            }
-        }
-        return null;
-    }
-
-    private void mostrarExito(String nombre) {
-        String msg = "¡Bienvenido, " + nombre + "!";
-        JOptionPane.showMessageDialog(frame, msg, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void mostrarError() {
-        String msg = "Credenciales incorrectas. Intente de nuevo.";
-        JOptionPane.showMessageDialog(frame, msg, "Error de Login", JOptionPane.ERROR_MESSAGE);
-    }
-
-    private void abrirMenuPrincipal() {
-        String nombreUsuario = SessionController.getInstancia().getNombreUsuario();
-        VentanaMenu menu = new VentanaMenu(nombreUsuario);
-        menu.mostrarVentana();
-    }
-
-    public static boolean usuarioExiste(String username) {
-        for (Usuario usuario : USUARIOS) {
-            if (usuario.getUsername().equalsIgnoreCase(username)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

@@ -1,6 +1,9 @@
 package Modelo;
 
-public class Resultado {
+import java.io.Serializable;
+
+public class Resultado implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private final int numero;
     private final double monto;
@@ -16,7 +19,6 @@ public class Resultado {
         this.ganancia = ganancia;
     }
 
-    // Getters
     public int getNumero() {
         return numero;
     }

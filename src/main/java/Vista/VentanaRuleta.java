@@ -2,17 +2,19 @@ package Vista;
 
 import javax.swing.*;
 import java.awt.*;
-
 import Controlador.ResultadoController;
 import Controlador.RuletaController;
+import Controlador.SessionController;
 import Modelo.Ruleta;
 import Modelo.Resultado;
-import Modelo.TipoApuesta; // Importación del Enum
+import Modelo.ApuestaBase;
+import Utilidades.ApuestaFactory; // Uso del Factory
 
 public class VentanaRuleta {
 
     private final JFrame frame = new JFrame("Ruleta Americana");
     private final JLabel lblUsuarioActual = new JLabel();
+    private final JLabel lblSaldoActual = new JLabel();
     private final JLabel lblNumeroGanador = new JLabel("Gire la Ruleta...");
     private final JLabel lblMontoApostar = new JLabel("Monto ($):");
     private final JTextField txtMonto = new JTextField(10);
@@ -24,7 +26,7 @@ public class VentanaRuleta {
     private final ButtonGroup grupoApuestas = new ButtonGroup();
 
     private final JButton btnGirar = new JButton("GIRAR RULETA 🎰");
-    private final JButton btnEstadisticas = new JButton("Ver Estadísticas");
+    private final JButton btnEstadisticas = new JButton("Ver Estadísticas Globales");
     private final JButton btnVolver = new JButton("Volver al Menú");
 
     private final JTextArea areaHistorial = new JTextArea(10, 30);
@@ -37,14 +39,18 @@ public class VentanaRuleta {
     public VentanaRuleta(String nombreUsuario, VentanaMenu menuPrincipal) {
         this.nombreUsuario = nombreUsuario;
         this.menuPrincipal = menuPrincipal;
+
         frame.setTitle("Ruleta Americana - Jugador: " + nombreUsuario);
 
         configurarComponentes();
         agregarListeners();
+        actualizarInfoUsuario();
     }
 
     private void configurarComponentes() {
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setLayout(new BorderLayout(10, 10));
+
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -53,23 +59,28 @@ public class VentanaRuleta {
         });
 
         setupPanelNorte();
-        setupPanelCentral();
-        setupPanelEste();
+        setupPanelControl();
+        setupPanelHistorial();
 
         frame.pack();
-        frame.setLocationRelativeTo(null);
     }
 
     private void setupPanelNorte() {
-        JPanel panelNorte = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        lblUsuarioActual.setText("Bienvenido, " + nombreUsuario + ". ¡A Jugar!");
+        JPanel panelNorte = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 10));
+        lblUsuarioActual.setText("Bienvenido, " + nombreUsuario + ".");
+
         panelNorte.add(lblUsuarioActual);
+        panelNorte.add(lblSaldoActual);
+
         frame.add(panelNorte, BorderLayout.NORTH);
     }
 
-    private void setupPanelCentral() {
-        JPanel panelCentral = new JPanel(new GridLayout(5, 1, 5, 5));
+    private void setupPanelControl() {
+        JPanel panelCentral = new JPanel();
+        panelCentral.setLayout(new BoxLayout(panelCentral, BoxLayout.Y_AXIS));
+        panelCentral.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
+        // 1. Panel de Apuestas
         JPanel panelApuestas = new JPanel();
         panelApuestas.setBorder(BorderFactory.createTitledBorder("Tipo de Apuesta"));
         grupoApuestas.add(rbRojo); grupoApuestas.add(rbNegro);
@@ -77,20 +88,31 @@ public class VentanaRuleta {
         panelApuestas.add(rbRojo); panelApuestas.add(rbNegro);
         panelApuestas.add(rbPar); panelApuestas.add(rbImpar);
         panelCentral.add(panelApuestas);
+        panelCentral.add(Box.createVerticalStrut(10));
 
+        // 2. Panel de Monto
         JPanel panelMonto = new JPanel(new FlowLayout(FlowLayout.CENTER));
         panelMonto.add(lblMontoApostar);
         panelMonto.add(txtMonto);
         panelCentral.add(panelMonto);
+        panelCentral.add(Box.createVerticalStrut(20));
 
+        // 3. Botones de Acción
         panelCentral.add(btnGirar);
+        panelCentral.add(Box.createVerticalStrut(10));
         panelCentral.add(btnEstadisticas);
+        panelCentral.add(Box.createVerticalStrut(10));
         panelCentral.add(btnVolver);
+
+        btnGirar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnEstadisticas.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnVolver.setAlignmentX(Component.CENTER_ALIGNMENT);
+
 
         frame.add(panelCentral, BorderLayout.WEST);
     }
 
-    private void setupPanelEste() {
+    private void setupPanelHistorial() {
         JPanel panelEste = new JPanel(new BorderLayout());
         panelEste.setBorder(BorderFactory.createTitledBorder("Resultado y Historial"));
 
@@ -105,6 +127,14 @@ public class VentanaRuleta {
         frame.add(panelEste, BorderLayout.CENTER);
     }
 
+    private void actualizarInfoUsuario() {
+        if (SessionController.getInstancia().getUsuarioActual() != null) {
+            double saldo = SessionController.getInstancia().getUsuarioActual().getSaldo();
+            lblSaldoActual.setText(String.format("Saldo: $%.2f", saldo));
+        }
+    }
+
+
     private void agregarListeners() {
         btnGirar.addActionListener(e -> jugarRondaGUI());
         btnEstadisticas.addActionListener(e -> ResultadoController.mostrarEstadisticas());
@@ -112,6 +142,7 @@ public class VentanaRuleta {
     }
 
     public void mostrarVentana() {
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
@@ -120,16 +151,16 @@ public class VentanaRuleta {
         menuPrincipal.mostrarVentana();
     }
 
-    private TipoApuesta obtenerTipoApuestaSeleccionado() {
-        if (rbRojo.isSelected()) return TipoApuesta.ROJO;
-        if (rbNegro.isSelected()) return TipoApuesta.NEGRO;
-        if (rbPar.isSelected()) return TipoApuesta.PAR;
-        if (rbImpar.isSelected()) return TipoApuesta.IMPAR;
-        return null;
+    // Obtiene solo el carácter de la apuesta (para pasarlo al Factory)
+    private char obtenerEtiquetaSeleccionada() {
+        if (rbRojo.isSelected()) return 'R';
+        if (rbNegro.isSelected()) return 'N';
+        if (rbPar.isSelected()) return 'P';
+        if (rbImpar.isSelected()) return 'I';
+        return 'X';
     }
 
     private void jugarRondaGUI() {
-        TipoApuesta tipoApuesta = obtenerTipoApuestaSeleccionado();
         double monto;
 
         try {
@@ -139,30 +170,49 @@ public class VentanaRuleta {
             return;
         }
 
-        if (tipoApuesta == null || monto <= 0 || ResultadoController.historial.size() >= ResultadoController.MAX_HISTORIAL) {
-            JOptionPane.showMessageDialog(frame, "Error: Seleccione apuesta y monto positivo. (Historial lleno si supera " + ResultadoController.MAX_HISTORIAL + ").", "Error", JOptionPane.WARNING_MESSAGE);
+        char etiqueta = obtenerEtiquetaSeleccionada();
+
+        if (etiqueta == 'X' || monto <= 0) {
+            JOptionPane.showMessageDialog(frame, "Error: Seleccione apuesta y monto positivo.", "Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        Resultado resultado = ruletaController.jugarRonda(monto, tipoApuesta);
+        try {
+            // USO DEL FACTORY: Bajo acoplamiento
+            ApuestaBase apuesta = ApuestaFactory.crearApuesta(etiqueta, monto);
 
-        actualizarGUI(
-                resultado.getNumero(),
-                resultado.getTipoApuesta(),
-                resultado.getMonto(),
-                resultado.isAcierto(),
-                resultado.getGanancia()
-        );
+            // Llamada al Controller con el objeto polimórfico
+            Resultado resultado = ruletaController.jugarRonda(apuesta);
+
+            actualizarGUI(
+                    resultado.getNumero(),
+                    resultado.getTipoApuesta(),
+                    resultado.getMonto(),
+                    resultado.isAcierto(),
+                    resultado.getGanancia()
+            );
+            actualizarInfoUsuario();
+
+        } catch (IllegalStateException e) {
+            JOptionPane.showMessageDialog(frame, e.getMessage(), "Error de Juego", JOptionPane.ERROR_MESSAGE);
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(frame, "Error en la apuesta: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void actualizarGUI(int numero, char tipo, double monto, boolean acierto, double gananciaNeta) {
         String resultadoTexto = acierto ? "¡GANÓ!" : "PERDIÓ.";
-        String color = Ruleta.esRojo(numero) ? "ROJO" : (numero == 0 ? "VERDE" : "NEGRO");
+        String color = Ruleta.getColor(numero);
 
         lblNumeroGanador.setText("Ganador: " + numero + " (" + color + ")");
 
         String logEntry = String.format("Ronda #%d: Apuesta: %c | Salió: %d (%s). Neta: $%.2f\n",
-                ResultadoController.historial.size(), tipo, numero, resultadoTexto, gananciaNeta);
+                SessionController.getInstancia().getHistorialPersonal().size(),
+                tipo,
+                numero,
+                resultadoTexto,
+                gananciaNeta
+        );
 
         areaHistorial.append(logEntry);
     }
