@@ -6,84 +6,48 @@ import java.util.stream.Collectors;
 
 public class Estadisticas {
 
-    private final int totalJugadas;
-    private final long victorias;
-    private final double porcentajeVictorias;
-    private final int rachaMaxima;
-    private final char tipoMasJugado;
+    private final List<Resultado> historial;
 
-    /**
-     * Constructor que recibe el historial y calcula todas las métricas.
-     */
     public Estadisticas(List<Resultado> historial) {
-        this.totalJugadas = historial.size();
-
-        if (totalJugadas == 0) {
-            this.victorias = 0;
-            this.porcentajeVictorias = 0.0;
-            this.rachaMaxima = 0;
-            this.tipoMasJugado = '-'; // Indica sin datos
-        } else {
-            this.victorias = calcularVictorias(historial);
-            this.porcentajeVictorias = calcularPorcentajeVictorias();
-            this.rachaMaxima = calcularRachaMaxima(historial);
-            this.tipoMasJugado = calcularTipoMasJugado(historial);
-        }
+        this.historial = historial;
     }
 
-    private long calcularVictorias(List<Resultado> historial) {
+    public int getTotalJugadas() {
+        return historial.size();
+    }
+
+    public long getVictorias() {
         return historial.stream().filter(Resultado::isAcierto).count();
     }
 
-    private double calcularPorcentajeVictorias() {
-        if (totalJugadas == 0) return 0.0;
-        return (double) victorias / totalJugadas * 100;
+    public double getPorcentajeVictorias() {
+        if (getTotalJugadas() == 0) return 0.0;
+        return (getVictorias() / (double) getTotalJugadas()) * 100;
     }
 
-    private int calcularRachaMaxima(List<Resultado> historial) {
-        int rachaActual = 0;
-        int maxRacha = 0;
+    public String getTipoMasJugado() {
+        if (historial.isEmpty()) return "N/A";
 
-        for (Resultado r : historial) {
-            if (r.isAcierto()) {
-                rachaActual++;
-            } else {
-                maxRacha = Math.max(maxRacha, rachaActual);
-                rachaActual = 0;
-            }
-        }
-        return Math.max(maxRacha, rachaActual);
-    }
-
-    private char calcularTipoMasJugado(List<Resultado> historial) {
         Map<Character, Long> conteo = historial.stream()
                 .collect(Collectors.groupingBy(Resultado::getTipoApuesta, Collectors.counting()));
 
         return conteo.entrySet().stream()
                 .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse('-');
-    }
-
-    // --- Getters ---
-
-    public int getTotalJugadas() {
-        return totalJugadas;
-    }
-
-    public long getVictorias() {
-        return victorias;
-    }
-
-    public double getPorcentajeVictorias() {
-        return porcentajeVictorias;
+                .map(e -> e.getKey().toString())
+                .orElse("N/A");
     }
 
     public int getRachaMaxima() {
-        return rachaMaxima;
-    }
-
-    public char getTipoMasJugado() {
-        return tipoMasJugado;
+        int racha = 0;
+        int maxRacha = 0;
+        for (Resultado r : historial) {
+            if (r.isAcierto()) {
+                racha++;
+            } else {
+                maxRacha = Math.max(maxRacha, racha);
+                racha = 0;
+            }
+        }
+        return Math.max(maxRacha, racha);
     }
 }

@@ -1,36 +1,48 @@
 package Controlador;
 
-import Modelo.*;
+import Modelo.ApuestaBase;
+import Modelo.Resultado;
+import Modelo.Ruleta;
+import Modelo.Usuario;
 
-/**
- * Coordina el Modelo (Ruleta) y la lógica de negocio (saldo, registro).
- */
 public class RuletaController {
 
-    public static final double PAGO_MULTIPLICADOR = 2.0;
+    private final Ruleta ruleta = new Ruleta();
 
     public Resultado jugarRonda(ApuestaBase apuesta) {
-        Usuario usuarioActual = SessionController.getInstancia().getUsuarioActual();
 
-        if (usuarioActual == null) {
-            throw new IllegalStateException("No hay un usuario activo para jugar.");
+        // 1. Obtener usuario de la sesión
+        Usuario usuario = SessionController.getInstancia().getUsuarioActual();
+        if (usuario == null) {
+            throw new IllegalStateException("No hay sesión de usuario activa.");
         }
 
-        // 1. Descontar el monto de la apuesta. El saldo debe ser suficiente.
-        if (!SessionController.getInstancia().manejarCambioSaldo(-apuesta.getMonto())) {
+        // 2. Verificar saldo
+        if (usuario.getSaldo() < apuesta.getMonto()) {
             throw new IllegalStateException("Saldo insuficiente para realizar la apuesta.");
         }
 
-        int numeroGanador = Ruleta.girar();
+        // 3. Girar Ruleta
+        int numeroGanador = ruleta.girar();
         String colorGanador = Ruleta.getColor(numeroGanador);
 
+        // 4. Evaluar Apuesta (Polimorfismo)
         boolean acierto = apuesta.acierta(numeroGanador, colorGanador);
 
-        double gananciaBruta = acierto ? apuesta.getMonto() * PAGO_MULTIPLICADOR : 0;
-        double gananciaNeta = gananciaBruta - apuesta.getMonto(); // Ganancia/Pérdida neta
+        double gananciaNeta = 0;
+        if (acierto) {
+            // Ganancia = Apuesta * 2 - Apuesta inicial (es decir, Apuesta * 1)
+            gananciaNeta = apuesta.getMonto();
+        } else {
+            // Pérdida = - Apuesta inicial
+            gananciaNeta = -apuesta.getMonto();
+        }
 
-        // Crear el Objeto Resultado
-        Resultado resultado = new Resultado(
+        // 5. Actualizar Saldo del Usuario
+        usuario.actualizarSaldo(gananciaNeta);
+
+        // 6. Crear Objeto Resultado
+        Resultado resultadoRonda = new Resultado(
                 numeroGanador,
                 apuesta.getMonto(),
                 acierto,
@@ -38,15 +50,13 @@ public class RuletaController {
                 gananciaNeta
         );
 
-        // 2. Registro y Actualización de Saldo Final
-        ResultadoController.registrarResultado(resultado);
-        usuarioActual.agregarResultado(resultado);
+        // 7. REGISTRAR RESULTADO (Delegación)
+        // Historial Personal (Asociación directa, se persiste con el usuario)
+        usuario.agregarResultado(resultadoRonda);
 
-        // Aplicar la ganancia (solo la ganancia bruta, la pérdida ya se descontó)
-        if (gananciaBruta > 0) {
-            SessionController.getInstancia().manejarCambioSaldo(gananciaBruta);
-        }
+        // Historial Global (Acceso al repositorio inyectado en ResultadoController)
+        ResultadoController.registrarResultado(resultadoRonda);
 
-        return resultado;
+        return resultadoRonda;
     }
 }
