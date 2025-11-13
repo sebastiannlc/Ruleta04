@@ -8,31 +8,62 @@ import javax.swing.JOptionPane;
 
 public class ResultadoController {
 
-    private static IRepositorioResultados repositorio;
-
-    private static final String ARCHIVO_HISTORIAL = "historial.dat";
-    public static final int MAX_HISTORIAL = 20;
+    private static IRepositorioResultados repositorioActivo;
+    private static IRepositorioResultados repositorioArchivo;
+    private static IRepositorioResultados repositorioMemoria;
 
     //Constructor
-    public ResultadoController(IRepositorioResultados repositorio) {
-        ResultadoController.repositorio = repositorio;
+    public ResultadoController(IRepositorioResultados archivoRepo, IRepositorioResultados memoriaRepo) {
+        ResultadoController.repositorioArchivo = archivoRepo;
+        ResultadoController.repositorioMemoria = memoriaRepo;
+
+        if (inicializarRepositorio()) {
+            System.out.println("Controlador iniciado con RepositorioArchivo.");
+        } else {
+            System.out.println("FALLBACK ACTIVADO: Usando RepositorioEnMemoria.");
+        }
+    }
+
+    private boolean inicializarRepositorio() {
+        try {
+            repositorioArchivo.obtenerHistorialGlobal();
+            repositorioActivo = repositorioArchivo;
+            return true;
+        } catch (RuntimeException e) {
+            System.err.println("Error crítico al inicializar RepositorioArchivo: " + e.getMessage());
+            repositorioActivo = repositorioMemoria;
+            return false;
+        }
     }
 
     public static void registrarResultado(Resultado resultado) {
-        if (repositorio == null) {
+        if (repositorioActivo == null) {
             System.err.println("Error: Repositorio no inicializado.");
+            return;
         }
-        repositorio.agregarResultado(resultado);
+
+        if (repositorioActivo == repositorioArchivo) {
+            try {
+                repositorioActivo.agregarResultado(resultado);
+            } catch (RuntimeException e) {
+                System.err.println("FALLBACK: Error al escribir en archivo. Cambiando a RepositorioEnMemoria.");
+                repositorioActivo = repositorioMemoria;
+                 // Se intenta guardar una vez más.
+                repositorioActivo.agregarResultado(resultado);
+            }
+        } else {
+            repositorioActivo.agregarResultado(resultado);
+        }
     }
 
     public static void mostrarEstadisticas() {
 
-        if (repositorio == null) {
+        if (repositorioActivo == null) {
             JOptionPane.showMessageDialog(null, "El sistema de repositorio no está activo.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        List<Resultado> historial = repositorio.obtenerHistorialGlobal();
+        List<Resultado> historial = repositorioActivo.obtenerHistorialGlobal();
 
         Estadisticas stats = new Estadisticas(historial);
 

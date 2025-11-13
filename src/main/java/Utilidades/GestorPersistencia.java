@@ -14,14 +14,10 @@ public class GestorPersistencia {
             System.out.println("âœ… Datos guardados en: " + nombreArchivo);
 
         } catch (IOException e) {
-            System.err.println("â?Œ Error al guardar datos en " + nombreArchivo + ": " + e.getMessage());
+            System.err.println("ï¿½?ï¿½ Error al guardar datos en " + nombreArchivo + ": " + e.getMessage());
         }
     }
 
-    /**
-	 * 
-	 * @param nombreArchivo
-	 */
 	@SuppressWarnings("unchecked")
     public static <T> List<T> cargarDatos(String nombreArchivo) {
         try (FileInputStream fis = new FileInputStream(nombreArchivo);
@@ -32,9 +28,9 @@ public class GestorPersistencia {
             return datosCargados;
 
         } catch (FileNotFoundException e) {
-            System.out.println("â„¹ï¸? Archivo " + nombreArchivo + " no encontrado. Iniciando lista vacÃ­a.");
+            System.out.println("â„¹ï¿½? Archivo " + nombreArchivo + " no encontrado. Iniciando lista vacÃ­a.");
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("â?Œ Error al cargar datos: " + e.getMessage());
+            System.err.println("ï¿½?ï¿½ Error al cargar datos: " + e.getMessage());
         }
         return new ArrayList<>();
     }
