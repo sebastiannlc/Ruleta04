@@ -1,6 +1,6 @@
 package Controlador;
 
-import Utilidades.GestorPersistencia;
+import Interfaces.IRepositorioResultados;
 import Modelo.Resultado;
 import Modelo.Estadisticas;
 import java.util.List;
@@ -8,25 +8,32 @@ import javax.swing.JOptionPane;
 
 public class ResultadoController {
 
+    private static IRepositorioResultados repositorio;
+
     private static final String ARCHIVO_HISTORIAL = "historial.dat";
     public static final int MAX_HISTORIAL = 20;
 
-    // Cargar historial persistente al inicio
-    public static final List<Resultado> historial =
-            GestorPersistencia.cargarDatos(ARCHIVO_HISTORIAL);
-
-    public static void registrarResultado(Resultado resultado) {
-        if (historial.size() < MAX_HISTORIAL) {
-            historial.add(resultado);
-        }
-        guardarHistorial();
+    //Constructor
+    public ResultadoController(IRepositorioResultados repositorio) {
+        ResultadoController.repositorio = repositorio;
     }
 
-    private static void guardarHistorial() {
-        GestorPersistencia.guardarDatos(historial, ARCHIVO_HISTORIAL);
+    public static void registrarResultado(Resultado resultado) {
+        if (repositorio == null) {
+            System.err.println("Error: Repositorio no inicializado.");
+        }
+        repositorio.agregarResultado(resultado);
     }
 
     public static void mostrarEstadisticas() {
+
+        if (repositorio == null) {
+            JOptionPane.showMessageDialog(null, "El sistema de repositorio no está activo.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        List<Resultado> historial = repositorio.obtenerHistorialGlobal();
+
         Estadisticas stats = new Estadisticas(historial);
 
         StringBuilder sb = new StringBuilder();
