@@ -31,13 +31,4 @@ public class Ruleta {
     public static String getColor(int numero) {
         return COLORES_RULETA.getOrDefault(numero, "VERDE");
     }
-
-    // Los métodos esRojo y esPar se mantienen solo para uso interno de la jerarquía de apuestas
-    public static boolean esRojo(int numero) {
-        return "ROJO".equals(getColor(numero));
-    }
-
-    public static boolean esPar(int numero) {
-        return numero % 2 == 0;
-    }
 }

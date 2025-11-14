@@ -12,7 +12,6 @@ public class ResultadoController {
     private static IRepositorioResultados repositorioArchivo;
     private static IRepositorioResultados repositorioMemoria;
 
-    //Constructor
     public ResultadoController(IRepositorioResultados archivoRepo, IRepositorioResultados memoriaRepo) {
         ResultadoController.repositorioArchivo = archivoRepo;
         ResultadoController.repositorioMemoria = memoriaRepo;

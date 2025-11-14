@@ -172,48 +172,41 @@ public class VentanaRuleta {
 
         char etiqueta = obtenerEtiquetaSeleccionada();
 
+        // 1. Validaciones básicas de UI (se mantienen en la vista)
         if (etiqueta == 'X' || monto <= 0) {
             JOptionPane.showMessageDialog(frame, "Error: Seleccione apuesta y monto positivo.", "Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         try {
-            // USO DEL FACTORY: Bajo acoplamiento
+            // 2. Creación de la Apuesta (USO DEL FACTORY)
             ApuestaBase apuesta = ApuestaFactory.crearApuesta(etiqueta, monto);
 
-            // Llamada al Controller con el objeto polimórfico
+            // 3. Delegar LÓGICA DE JUEGO al Controlador
             Resultado resultado = ruletaController.jugarRonda(apuesta);
 
-            actualizarGUI(
-                    resultado.getNumero(),
-                    resultado.getTipoApuesta(),
-                    resultado.getMonto(),
-                    resultado.isAcierto(),
-                    resultado.getGanancia()
-            );
+            // 4. Actualizar la Interfaz con el objeto Resultado
+            actualizarGUI(resultado);
             actualizarInfoUsuario();
 
         } catch (IllegalStateException e) {
+            // Errores de negocio (e.g., saldo insuficiente)
             JOptionPane.showMessageDialog(frame, e.getMessage(), "Error de Juego", JOptionPane.ERROR_MESSAGE);
         } catch (IllegalArgumentException e) {
+            // Errores de Fábrica (Apuesta inválida)
             JOptionPane.showMessageDialog(frame, "Error en la apuesta: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void actualizarGUI(int numero, char tipo, double monto, boolean acierto, double gananciaNeta) {
-        String resultadoTexto = acierto ? "¡GANÓ!" : "PERDIÓ.";
-        String color = Ruleta.getColor(numero);
+    private void actualizarGUI(Resultado resultado) {
+        // 1. Actualizar etiqueta de número ganador (Lógica de la Vista)
+        String color = Ruleta.getColor(resultado.getNumero());
+        lblNumeroGanador.setText("Ganador: " + resultado.getNumero() + " (" + color + ")");
 
-        lblNumeroGanador.setText("Ganador: " + numero + " (" + color + ")");
+        // 2. Obtener el texto de log (Delegando el formateo al Controlador)
+        String logEntry = ruletaController.generarLogRonda(resultado);
 
-        String logEntry = String.format("Ronda #%d: Apuesta: %c | Salió: %d (%s). Neta: $%.2f\n",
-                SessionController.getInstancia().getHistorialPersonal().size(),
-                tipo,
-                numero,
-                resultadoTexto,
-                gananciaNeta
-        );
-
+        // 3. Actualizar el JTextArea
         areaHistorial.append(logEntry);
     }
 }

@@ -76,7 +76,7 @@ public class RepositorioArchivo implements IRepositorioResultados {
             return historial;
 
         } catch (FileNotFoundException e) {
-            System.out.println("ℹ️ Archivo " + NOMBRE_ARCHIVO + " no encontrado. Iniciando historial vacío.");
+            System.out.println(" Archivo " + NOMBRE_ARCHIVO + " no encontrado. Iniciando historial vacío.");
             return historial; // Devuelve lista vacía, no es un fallo crítico de E/S
         } catch (IOException e) {
             // ERROR CRÍTICO: Error de lectura del archivo (permisos, disco lleno, etc.)
