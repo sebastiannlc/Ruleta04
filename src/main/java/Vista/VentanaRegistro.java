@@ -55,36 +55,26 @@ public class VentanaRegistro {
     }
 
     private void registrarUsuario() {
-        String username = txtUsername.getText();
+        String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword());
-        String nombre = txtNombre.getText();
+        String nombre = txtNombre.getText().trim();
 
+        // 1. Lógica de UI: Validar campos vacíos (se mantiene en la Vista)
         if (username.isEmpty() || password.isEmpty() || nombre.isEmpty()) {
             JOptionPane.showMessageDialog(frame, "Todos los campos son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        try {
+            Usuario nuevoUsuario = SessionController.getInstancia().registrarNuevoUsuario(username, password, nombre);
 
-        if (usuarioExiste(username)) {
-            JOptionPane.showMessageDialog(frame, "Ese nombre de usuario ya existe.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(frame, "Registro exitoso. ¡Bienvenido!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+
+            frame.dispose();
+            new VentanaMenu(nuevoUsuario.getNombre()).mostrarVentana();
+
+        } catch (IllegalArgumentException e) {
+            // 4. Manejar error de negocio (Usuario ya existe)
+            JOptionPane.showMessageDialog(frame, e.getMessage(), "Error de Registro", JOptionPane.ERROR_MESSAGE);
         }
-
-        Usuario nuevoUsuario = new Usuario(username, password, nombre);
-        VentanaLogin.USUARIOS.add(nuevoUsuario);
-
-        // **IMPORTANTE:** Persistencia de usuarios actualizada
-        VentanaLogin.guardarUsuarios();
-
-        SessionController.getInstancia().iniciarSesion(nuevoUsuario);
-
-        JOptionPane.showMessageDialog(frame, "Registro exitoso. ¡Bienvenido!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-
-        frame.dispose();
-        new VentanaMenu(nombre).mostrarVentana();
-    }
-
-    private boolean usuarioExiste(String username) {
-        return VentanaLogin.USUARIOS.stream()
-                .anyMatch(u -> u.getUsername().equals(username));
     }
 }

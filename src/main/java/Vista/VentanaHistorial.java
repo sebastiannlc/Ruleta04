@@ -58,28 +58,9 @@ public class VentanaHistorial {
     }
 
     private void cargarHistorial() {
-        List<Resultado> historial = SessionController.getInstancia().getHistorialPersonal();
-        if (historial.isEmpty()) {
-            areaHistorial.setText("No hay resultados registrados en tu historial.");
-            return;
-        }
+        // La Vista simplemente solicita el String ya formateado.
+        String historialTexto = SessionController.getInstancia().generarHistorialPersonalFormateado();
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("%-10s %-8s %-10s %-10s\n", "Ronda", "Apuesta", "Número", "Ganancia Neta"));
-        sb.append("-------------------------------------------\n");
-
-        for (int i = 0; i < historial.size(); i++) {
-            Resultado r = historial.get(i);
-            String acierto = r.isAcierto() ? " (GANÓ)" : "";
-            sb.append(String.format("%-10d %-8c %-10d %-10.2f %s\n",
-                    i + 1,
-                    r.getTipoApuesta(),
-                    r.getNumero(),
-                    r.getGanancia(),
-                    acierto
-            ));
-        }
-
-        areaHistorial.setText(sb.toString());
+        areaHistorial.setText(historialTexto);
     }
 }

@@ -77,13 +77,11 @@ public class VentanaLogin {
         String username = txtUsername.getText();
         String password = new String(txtPassword.getPassword());
 
-        Usuario usuario = USUARIOS.stream()
-                .filter(u -> u.validarCredenciales(username, password))
-                .findFirst()
-                .orElse(null);
+        // 1. Delegar la lógica de negocio y autenticación al Controlador
+        Usuario usuario = SessionController.getInstancia().autenticarYIniciarSesion(username, password);
 
+        // 2. Manejar el flujo de la interfaz de usuario
         if (usuario != null) {
-            SessionController.getInstancia().iniciarSesion(usuario);
             JOptionPane.showMessageDialog(frame, "Login exitoso. ¡Bienvenido!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
             frame.dispose();
             new VentanaMenu(usuario.getNombre()).mostrarVentana();
