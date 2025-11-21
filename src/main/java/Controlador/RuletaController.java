@@ -16,17 +16,11 @@ public class RuletaController {
             throw new IllegalStateException("No hay sesión de usuario activa.");
         }
 
-        //  Verificar saldo
-        if (usuario.getSaldo() < apuesta.getMonto()) {
-            throw new IllegalStateException("Saldo insuficiente para realizar la apuesta.");
-        }
-
         int numeroGanador = ruleta.girar();
         String colorGanador = Ruleta.getColor(numeroGanador);
 
-        // Evaluar apuesta
         boolean acierto = apuesta.acierta(numeroGanador, colorGanador);
-        double gananciaNeta = 0;
+        double gananciaNeta;
         if (acierto) {
             // Ganancia = Apuesta * 2 - Apuesta inicial (es decir, Apuesta * 1)
             gananciaNeta = apuesta.getMonto();

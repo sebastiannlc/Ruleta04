@@ -8,7 +8,7 @@ import Controlador.SessionController;
 import Modelo.Ruleta;
 import Modelo.Resultado;
 import Modelo.ApuestaBase;
-import Utilidades.ApuestaFactory; // Uso del Factory
+import Utilidades.ApuestaFactory;
 
 public class VentanaRuleta {
 
@@ -151,7 +151,6 @@ public class VentanaRuleta {
         menuPrincipal.mostrarVentana();
     }
 
-    // Obtiene solo el carácter de la apuesta (para pasarlo al Factory)
     private char obtenerEtiquetaSeleccionada() {
         if (rbRojo.isSelected()) return 'R';
         if (rbNegro.isSelected()) return 'N';
@@ -172,41 +171,38 @@ public class VentanaRuleta {
 
         char etiqueta = obtenerEtiquetaSeleccionada();
 
-        // 1. Validaciones básicas de UI (se mantienen en la vista)
         if (etiqueta == 'X' || monto <= 0) {
             JOptionPane.showMessageDialog(frame, "Error: Seleccione apuesta y monto positivo.", "Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
+        double saldoActual = SessionController.getInstancia().getUsuarioActual().getSaldo();
+        if  (monto > saldoActual) {
+            JOptionPane.showMessageDialog(frame, "Saldo insuficiente para realizar la apuesta.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         try {
-            // 2. Creación de la Apuesta (USO DEL FACTORY)
             ApuestaBase apuesta = ApuestaFactory.crearApuesta(etiqueta, monto);
 
-            // 3. Delegar LÓGICA DE JUEGO al Controlador
             Resultado resultado = ruletaController.jugarRonda(apuesta);
 
-            // 4. Actualizar la Interfaz con el objeto Resultado
             actualizarGUI(resultado);
             actualizarInfoUsuario();
 
         } catch (IllegalStateException e) {
-            // Errores de negocio (e.g., saldo insuficiente)
             JOptionPane.showMessageDialog(frame, e.getMessage(), "Error de Juego", JOptionPane.ERROR_MESSAGE);
         } catch (IllegalArgumentException e) {
-            // Errores de Fábrica (Apuesta inválida)
             JOptionPane.showMessageDialog(frame, "Error en la apuesta: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void actualizarGUI(Resultado resultado) {
-        // 1. Actualizar etiqueta de número ganador (Lógica de la Vista)
         String color = Ruleta.getColor(resultado.getNumero());
         lblNumeroGanador.setText("Ganador: " + resultado.getNumero() + " (" + color + ")");
 
-        // 2. Obtener el texto de log (Delegando el formateo al Controlador)
         String logEntry = ruletaController.generarLogRonda(resultado);
 
-        // 3. Actualizar el JTextArea
         areaHistorial.append(logEntry);
     }
 }
