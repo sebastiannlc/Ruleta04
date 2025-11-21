@@ -38,8 +38,10 @@ public class SessionController {
 
         if (usuario != null) {
             this.iniciarSesion(usuario);
+            return usuario;
+        } else {
+            throw new IllegalStateException("Credenciales invalida. Usuario o contraseña incorrectos. ");
         }
-        return usuario;
     }
 
     public boolean usuarioExiste(String username) {
@@ -51,7 +53,7 @@ public class SessionController {
     public Usuario registrarNuevoUsuario(String username, String password, String nombre) {
 
         if (usuarioExiste(username)) {
-            throw new IllegalArgumentException("Ese nombre de usuario ya existe.");
+            throw new IllegalStateException("Ese nombre de usuario ya existe, intente con otro.");
         }
 
         Usuario nuevoUsuario = new Usuario(username, password, nombre);

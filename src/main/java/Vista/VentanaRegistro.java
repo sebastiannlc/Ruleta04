@@ -59,21 +59,19 @@ public class VentanaRegistro {
         String password = new String(txtPassword.getPassword());
         String nombre = txtNombre.getText().trim();
 
-        // 1. Lógica de UI: Validar campos vacíos (se mantiene en la Vista)
         if (username.isEmpty() || password.isEmpty() || nombre.isEmpty()) {
             JOptionPane.showMessageDialog(frame, "Todos los campos son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
         try {
             Usuario nuevoUsuario = SessionController.getInstancia().registrarNuevoUsuario(username, password, nombre);
 
             JOptionPane.showMessageDialog(frame, "Registro exitoso. ¡Bienvenido!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-
             frame.dispose();
             new VentanaMenu(nuevoUsuario.getNombre()).mostrarVentana();
 
-        } catch (IllegalArgumentException e) {
-            // 4. Manejar error de negocio (Usuario ya existe)
+        } catch (IllegalStateException e) {
             JOptionPane.showMessageDialog(frame, e.getMessage(), "Error de Registro", JOptionPane.ERROR_MESSAGE);
         }
     }

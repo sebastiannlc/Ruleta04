@@ -77,16 +77,20 @@ public class VentanaLogin {
         String username = txtUsername.getText();
         String password = new String(txtPassword.getPassword());
 
-        // 1. Delegar la lógica de negocio y autenticación al Controlador
-        Usuario usuario = SessionController.getInstancia().autenticarYIniciarSesion(username, password);
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "El usuario y la contraseña no pueden estar vacios.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-        // 2. Manejar el flujo de la interfaz de usuario
-        if (usuario != null) {
+        try {
+            Usuario usuario = SessionController.getInstancia().autenticarYIniciarSesion(username, password);
+
             JOptionPane.showMessageDialog(frame, "Login exitoso. ¡Bienvenido!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
             frame.dispose();
             new VentanaMenu(usuario.getNombre()).mostrarVentana();
-        } else {
-            JOptionPane.showMessageDialog(frame, "Credenciales inválidas.", "Error", JOptionPane.ERROR_MESSAGE);
+
+        } catch (IllegalStateException e){
+            JOptionPane.showMessageDialog(frame, e.getMessage(), "Error de login", JOptionPane.ERROR_MESSAGE);
         }
     }
 
